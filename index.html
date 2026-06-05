@@ -637,6 +637,7 @@
       <h2 class="pod-section-title">REVELATOLOGY</h2>
       <p class="sec-desc">Conversations about life, creativity, philosophy and everything that shapes the mind.</p>
       <a href="https://www.youtube.com/@JohnMoran_Podcast" target="_blank" class="pill-btn">LISTEN TO PODCAST →</a>
+      <a href="https://www.youtube.com/@JohnMoran_Podcast/videos" target="_blank" class="pill-btn" style="margin-top:10px;border-color:rgba(200,169,110,0.18);color:var(--text-dim);font-size:8px;">ALL EPISODES →</a>
       <div class="pod-platforms">
         <a href="https://www.youtube.com/@JohnMoran_Podcast" target="_blank" title="YouTube">
           <svg viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
@@ -671,12 +672,21 @@
           <line x1="28" y1="190" x2="92" y2="190" stroke="rgba(200,169,110,1)" stroke-width="4"/>
         </svg>
       </div>
-      <div class="pod-inner">
+      <div class="pod-inner" id="pod-inner-dynamic">
         <div class="pod-label">LATEST EPISODE</div>
-        <h3 class="pod-title">Ep. 08<br>The Loneliness<br>of Being a Creator</h3>
-        <div class="pod-meta">MAY 20, 2024 <span>·</span> 47 MIN</div>
+        <h3 class="pod-title" id="pod-ep-title">
+          <span id="pod-ep-num" style="opacity:0.7;font-size:0.7em;display:block;margin-bottom:4px;">Loading...</span>
+          <span id="pod-ep-name"></span>
+        </h3>
+        <div class="pod-meta" id="pod-ep-meta" style="margin-bottom:10px;"></div>
+        <div class="pod-ep-desc" id="pod-ep-desc" style="
+          font-family:'Cormorant Garamond',serif;font-style:italic;
+          font-size:clamp(13px,1.2vw,16px);color:var(--text-dim);
+          line-height:1.65;margin-bottom:24px;max-width:90%;
+          display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+        "></div>
         <div class="pod-row">
-          <a href="https://www.youtube.com/@JohnMoran_Podcast" target="_blank" class="yt-btn">
+          <a href="https://www.youtube.com/@JohnMoran_Podcast" target="_blank" class="yt-btn" id="pod-yt-link">
             <svg viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
             WATCH ON YOUTUBE
           </a>
@@ -764,6 +774,52 @@
 </footer>
 
 <script>
+  // ── AUTO-FETCH LATEST PODCAST EPISODE FROM YOUTUBE ──
+  // Channel: @JohnMoran_Podcast  (handle: UCxxxxx)
+  // Using YouTube RSS feed (no API key needed)
+  const CHANNEL_ID = 'UCCZePZZwMg9WwNtrV7_-fOA'; // Revelatology / @JohnMoran_Podcast
+
+  async function fetchLatestEpisode() {
+    try {
+      // YouTube RSS feed — no API key required
+      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, 'text/xml');
+      const entries = xml.querySelectorAll('entry');
+
+      if (entries.length > 0) {
+        const latest = entries[0];
+        const title = latest.querySelector('title')?.textContent || '';
+        const videoId = latest.querySelector('videoId')?.textContent || '';
+        const published = latest.querySelector('published')?.textContent || '';
+        const description = latest.querySelector('description')?.textContent || '';
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const epIndex = entries.length; // total videos = ep number of latest
+
+        // Format date
+        const date = new Date(published);
+        const dateStr = date.toLocaleDateString('en-US', { month:'short', day:'2-digit', year:'numeric' }).toUpperCase();
+
+        // Update DOM
+        document.getElementById('pod-ep-num').textContent = `Ep. ${String(epIndex).padStart(2,'0')}`;
+        document.getElementById('pod-ep-name').textContent = title;
+        document.getElementById('pod-ep-meta').innerHTML = `${dateStr}`;
+        document.getElementById('pod-ep-desc').textContent = description.slice(0, 180).trim() + (description.length > 180 ? '…' : '');
+        document.getElementById('pod-yt-link').href = videoUrl;
+      }
+    } catch(e) {
+      // Fallback to static content if fetch fails
+      document.getElementById('pod-ep-num').textContent = 'Ep. 02';
+      document.getElementById('pod-ep-name').textContent = 'Are You Alone?';
+      document.getElementById('pod-ep-meta').innerHTML = 'MAY 2025';
+      document.getElementById('pod-ep-desc').textContent = 'Is loneliness our choice? A conversation about solitude, creativity, and what it means to sit alone with your thoughts.';
+    }
+  }
+  fetchLatestEpisode();
+
   const wf = document.getElementById("wf");
   for(let i=0;i<58;i++){
     const b=document.createElement("div");
